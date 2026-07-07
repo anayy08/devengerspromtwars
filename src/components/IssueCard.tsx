@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Check } from 'lucide-react';
+import { Save, Check, Building2 } from 'lucide-react';
 import DraftTabs from './DraftTabs';
 import EscalationStepper from './EscalationStepper';
 import { saveComplaint, generateId } from '../lib/storage';
@@ -18,7 +18,7 @@ interface Props {
 
 export default function IssueCard({ issue, lang, area, name, originalText }: Props) {
   const t = strings[lang];
-  const [activeTab, setActiveTab] = useState<CardTab>('english');
+  const [activeTab, setActiveTab] = useState<CardTab>(lang === 'hi' ? 'hindi' : 'english');
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -49,17 +49,21 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
       <div className="issue-header">
         <span className="category-badge">{issue.category}</span>
         <span className={`severity-pill severity-${issue.severity}`}>
-          {issue.severity}
+          {t.severityLabels[issue.severity]}
         </span>
-        <span className="department-name">{issue.department}</span>
+        <span className="department-name">
+          <Building2 size={14} aria-hidden="true" /> {issue.department}
+        </span>
       </div>
       <p className="department-reasoning">{issue.departmentReasoning}</p>
 
       {/* Tabs */}
-      <div className="card-tabs">
+      <div className="card-tabs" role="tablist">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
             className={`card-tab ${activeTab === tab.key ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
@@ -88,24 +92,24 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
       {activeTab === 'filing' && (
         <div className="filing-info">
           <div className="filing-row">
-            <span className="filing-label">Primary Channel</span>
+            <span className="filing-label">{t.primaryChannel}</span>
             <span className="filing-value">{issue.channel.primary}</span>
           </div>
           <div className="filing-row">
-            <span className="filing-label">Portal / App</span>
+            <span className="filing-label">{t.portalApp}</span>
             <span className="filing-value">{issue.channel.portalName}</span>
           </div>
           <div className="filing-row">
-            <span className="filing-label">How to File</span>
+            <span className="filing-label">{t.howToFile}</span>
             <span className="filing-value mono">{issue.channel.howToFile}</span>
           </div>
           <div className="filing-row">
-            <span className="filing-label">Expected SLA</span>
+            <span className="filing-label">{t.expectedSLA}</span>
             <span className="filing-value">{issue.expectedSLA}</span>
           </div>
           {issue.severityReasoning && (
             <div className="filing-row">
-              <span className="filing-label">Severity Assessment</span>
+              <span className="filing-label">{t.severityAssessment}</span>
               <span className="filing-value">{issue.severityReasoning}</span>
             </div>
           )}

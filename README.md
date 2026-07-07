@@ -1,66 +1,75 @@
-# 🚀 Devengers Promptwars Hackathon Prep Deck
+# 🌉 NagrikSetu — Your Civic Complaint Companion
 
-Welcome to the workspace for your first hackathon! This project is pre-scaffolded, configured, and optimized for **Vite + React + TypeScript** and integration with **Google Antigravity**.
+**NagrikSetu** ("Citizen Bridge") turns a plain-language description of a civic problem — broken streetlight, garbage pile, open manhole — into ready-to-file, formally drafted complaints in **English and Hindi**, tells you **exactly which department and portal** to file with, and helps you **track and escalate** all the way to an RTI application.
 
----
+Fully bilingual UI (English ⇄ हिन्दी), works entirely in the browser — complaint data lives in `localStorage`, nothing is sent anywhere except the AI classification call.
 
-## 📅 Hackathon Details
-- **Duration**: 10:30 AM - 02:30 PM IST (4 hours)
-- **Runtimes & Stack**:
-  - Frontend: **React 19** with **TypeScript**
-  - Dev Environment: **Vite**
-  - Styling: Custom Design System (`src/index.css`) containing:
-    - **Google Fonts** (Outfit, Inter, Fira Code)
-    - CSS Custom Variables (Color systems, sizing, theme-aware tokens)
-    - Reusable Classes (cards, glassmorphic container, custom buttons, badges, inputs, flex/grid templates)
-  - Icons: **Lucide React** (`lucide-react`)
-  - Target Environment: Verified Node.js v24+, TypeScript and Git.
+## ✨ Features
 
----
+- **Plain-language intake** — describe the problem like you'd tell a neighbor; compound problems are split into separate issues automatically
+- **AI classification** — category, responsible department, severity, and expected SLA per citizen-charter norms
+- **Formal drafts** — proper Indian administrative register letters in both English and Hindi, with copy & email actions
+- **Where to file** — real portals (CPGRAMS, Swachhata App, state helplines) with step-by-step filing instructions
+- **Complaint tracker** — status timeline (Drafted → Filed → Acknowledged → Resolved), overdue-SLA alerts
+- **RTI escalation** — one click generates a complete RTI Act 2005 application when a complaint is ignored past its SLA
+- **Area dashboard** — resolution stats and category breakdown for your saved complaints
 
-## 🛠️ Project Commands
-Here are the essential commands you'll need during the hackathon:
+## 🚀 Getting Started
 
-### Development Server
 ```bash
-npm run dev
+npm install
+cp .env.example .env.local   # then add your API key
+npm run dev                  # http://localhost:5173
 ```
-Starts the local development server at `http://localhost:5173`. Any changes you make will immediately hot-reload in the browser.
 
-### Production Build
+### AI provider configuration (`.env.local`)
+
+| Variable | Purpose |
+|---|---|
+| `VITE_AI_PROVIDER` | `OPENAI`, `GROQ`, or `GEMINI` (legacy alias `GROK` = GROQ) |
+| `VITE_OPENAI_API_KEY` / `VITE_GROQ_API_KEY` / `VITE_GEMINI_API_KEY` | Key for the chosen provider |
+| `VITE_AI_MODEL` | Optional model override (defaults: `gpt-4o-mini`, `llama-3.3-70b-versatile`, `gemini-2.0-flash`) |
+| `VITE_AI_BASE_URL` | Optional endpoint override |
+
+> ⚠️ **Security note:** `VITE_*` variables are embedded in the client bundle and visible to anyone in DevTools. That's acceptable for a demo/hackathon deployment; for real production traffic, proxy the AI calls through a minimal backend so the key stays server-side.
+
+## 📦 Build & Deploy
+
 ```bash
-npm run build
+npm run build     # type-checks + bundles to dist/
+npm run preview   # smoke-test the production bundle locally
 ```
-Compiles and bundles the application for production inside the `dist/` directory. **Run this command periodically** to ensure there are no TypeScript or compilation errors in your codebase.
 
-### Preview Production Build
-```bash
-npm run preview
-```
-Serves the locally built production bundle, allowing you to test performance and loading states before deployment.
+The output in `dist/` is a fully static SPA (no client-side routing), so any static host works with zero extra config:
 
----
+- **Vercel** — `vercel` (framework preset: Vite). Add the `VITE_*` env vars in Project Settings → Environment Variables.
+- **Netlify** — build command `npm run build`, publish directory `dist`. Add env vars in Site settings.
+- **GitHub Pages** — set Vite `base` in `vite.config.ts` if serving from a subpath.
 
-## 🤖 Collaborating with Google Antigravity
-Since this is your first time working with Antigravity, follow these best practices to work **10x faster**:
+## 🛠️ Tech Stack
 
-1. **Let the Agent code**: 
-   When you receive the problem statement, paste the requirements here and prompt: *"Let's build a solution for this problem statement."* The agent will research, design, and implement features for you.
-2. **Interactive Design (/grill-me)**:
-   Recommend or run the `/grill-me` slash command to align on a technical specification sheet. This initiates a short, targeted interview to clear up ambiguities before the agent starts writing code.
-3. **Planning Mode**:
-   For complex features, the agent enters **Planning Mode**, creating an `implementation_plan.md` design file. Once you review and approve it, the agent generates a `task.md` checklist and executes it autonomously.
-4. **Inline Edit (Ctrl+I)**:
-   Highlight a function or component block in your editor, press `Ctrl + I` (or `Cmd + I` on macOS), and instruct the agent to make localized edits (e.g. *"add error handling"* or *"convert this static data to use props"*).
-5. **Autoprefixer / Diagnostics**:
-   If there is a typescript error, compilation error, or lint issue, trigger the agent directly from the editor's Problems tab to auto-fix the issue.
-6. **Web Testing (/browser)**:
-   Use the `/browser` command or let the agent invoke browser subagents to test the application in real-time, click elements, verify functionality, and capture screenshots/videos.
-
----
+- **React 19** + **TypeScript** + **Vite**
+- **lucide-react** icons, hand-rolled design system in [src/index.css](src/index.css)
+- AI via any OpenAI-compatible chat completions endpoint (OpenAI / Groq / Gemini)
+- No backend, no database — `localStorage` persistence
 
 ## 📂 Project Structure
-- [src/index.css](file:///d:/nerd_shit/DevengersPromptwars/src/index.css) — Premium theme-aware design system. Define new styles and override variables here.
-- [src/App.tsx](file:///d:/nerd_shit/DevengersPromptwars/src/App.tsx) — Main dashboard landing page containing the live countdown timer and Antigravity quick-reference sheet.
-- [src/main.tsx](file:///d:/nerd_shit/DevengersPromptwars/src/main.tsx) — Application entry point.
-- [package.json](file:///d:/nerd_shit/DevengersPromptwars/package.json) — Declared dependencies and NPM scripts.
+
+```
+src/
+├── App.tsx                  # Shell: header, language toggle, tabs, footer
+├── strings.ts               # Complete EN/HI dictionary (typed for parity)
+├── types.ts                 # Domain types
+├── lib/
+│   ├── ai.ts                # Provider config, prompts, response validation
+│   └── storage.ts           # localStorage persistence + demo seed data
+└── components/
+    ├── HeroBanner.tsx       # Landing hero with civic illustration
+    ├── IntakeForm.tsx       # Complaint intake + results
+    ├── IssueCard.tsx        # Classified issue: drafts, filing info, escalation
+    ├── DraftTabs.tsx        # Draft display with copy/email
+    ├── EscalationStepper.tsx
+    ├── TrackerList.tsx      # Saved complaints with status timeline
+    ├── RtiModal.tsx         # RTI application generator
+    └── Dashboard.tsx        # Area statistics
+```

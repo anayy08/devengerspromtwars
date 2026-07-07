@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BarChart3 } from 'lucide-react';
 import { getComplaints } from '../lib/storage';
 import { strings } from '../strings';
 import type { UILanguage, SavedComplaint } from '../types';
@@ -46,6 +47,15 @@ export default function Dashboard({ lang }: Props) {
   const resolvedArc = (resolvedPct / 100) * circumference;
   const pendingArc = (pendingPct / 100) * circumference;
 
+  if (total === 0) {
+    return (
+      <div className="empty-state fade-in">
+        <BarChart3 size={48} />
+        <p>{t.dashEmpty}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in">
       {/* Stat Cards */}
@@ -69,43 +79,41 @@ export default function Dashboard({ lang }: Props) {
       </div>
 
       {/* Donut Chart */}
-      {total > 0 && (
-        <div className="donut-container">
-          <svg width="120" height="120" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" strokeWidth="12" />
-            {resolved > 0 && (
-              <circle
-                cx="50" cy="50" r="40" fill="none"
-                stroke="var(--green)" strokeWidth="12"
-                strokeDasharray={`${resolvedArc} ${circumference}`}
-                strokeDashoffset="0"
-                transform="rotate(-90 50 50)"
-                strokeLinecap="round"
-              />
-            )}
-            {pending > 0 && (
-              <circle
-                cx="50" cy="50" r="40" fill="none"
-                stroke="var(--saffron)" strokeWidth="12"
-                strokeDasharray={`${pendingArc} ${circumference}`}
-                strokeDashoffset={`${-resolvedArc}`}
-                transform="rotate(-90 50 50)"
-                strokeLinecap="round"
-              />
-            )}
-          </svg>
-          <div className="donut-legend">
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: 'var(--green)' }} />
-              {t.resolved}: {resolved}
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: 'var(--saffron)' }} />
-              {t.pending}: {pending}
-            </div>
+      <div className="donut-container">
+        <svg width="120" height="120" viewBox="0 0 100 100" role="img" aria-label={`${t.resolved}: ${resolved}, ${t.pending}: ${pending}`}>
+          <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" strokeWidth="12" />
+          {resolved > 0 && (
+            <circle
+              cx="50" cy="50" r="40" fill="none"
+              stroke="var(--green)" strokeWidth="12"
+              strokeDasharray={`${resolvedArc} ${circumference}`}
+              strokeDashoffset="0"
+              transform="rotate(-90 50 50)"
+              strokeLinecap="round"
+            />
+          )}
+          {pending > 0 && (
+            <circle
+              cx="50" cy="50" r="40" fill="none"
+              stroke="var(--saffron)" strokeWidth="12"
+              strokeDasharray={`${pendingArc} ${circumference}`}
+              strokeDashoffset={`${-resolvedArc}`}
+              transform="rotate(-90 50 50)"
+              strokeLinecap="round"
+            />
+          )}
+        </svg>
+        <div className="donut-legend">
+          <div className="legend-item">
+            <span className="legend-dot" style={{ background: 'var(--green)' }} />
+            {t.resolved}: {resolved}
+          </div>
+          <div className="legend-item">
+            <span className="legend-dot" style={{ background: 'var(--saffron)' }} />
+            {t.pending}: {pending}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Bar Chart */}
       {categories.length > 0 && (

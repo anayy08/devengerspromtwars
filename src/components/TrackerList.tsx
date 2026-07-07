@@ -1,15 +1,20 @@
 import { useState, useCallback } from 'react';
-import { ClipboardList, AlertTriangle, Trash2 } from 'lucide-react';
+import { ClipboardList, AlertTriangle, Trash2, MapPin } from 'lucide-react';
 import { getComplaints, updateComplaintStatus, deleteComplaint } from '../lib/storage';
 import { strings } from '../strings';
 import RtiModal from './RtiModal';
 import type { UILanguage, SavedComplaint, ComplaintStatus } from '../types';
 
 const STATUS_ORDER: ComplaintStatus[] = ['Drafted', 'Filed', 'Acknowledged', 'Resolved', 'Ignored'];
+// Statuses where the clock is running on the department
+const AWAITING_ACTION: ComplaintStatus[] = ['Filed', 'Acknowledged'];
 
-interface Props { lang: UILanguage; }
+interface Props {
+  lang: UILanguage;
+  onFileNew: () => void;
+}
 
-export default function TrackerList({ lang }: Props) {
+export default function TrackerList({ lang, onFileNew }: Props) {
   const t = strings[lang];
   const [complaints, setComplaints] = useState<SavedComplaint[]>(getComplaints);
   const [rtiTarget, setRtiTarget] = useState<SavedComplaint | null>(null);
@@ -24,19 +29,23 @@ export default function TrackerList({ lang }: Props) {
   };
 
   const handleDelete = (id: string) => {
+    if (!window.confirm(t.confirmDelete)) return;
     deleteComplaint(id);
     refresh();
   };
 
   const daysElapsed = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
   };
 
   const parseSLADays = (sla: string): number => {
     const match = sla.match(/(\d+)/g);
     if (!match) return 15;
-    return parseInt(match[match.length - 1], 10);
+    const value = parseInt(match[match.length - 1], 10);
+    // "24/48 hours" style SLAs would otherwise read as 24+ days
+    if (/hour|घंट/i.test(sla)) return Math.max(1, Math.ceil(value / 24));
+    return value;
   };
 
   if (complaints.length === 0) {
@@ -44,6 +53,9 @@ export default function TrackerList({ lang }: Props) {
       <div className="empty-state fade-in">
         <ClipboardList size={48} />
         <p>{t.noComplaints}</p>
+        <button className="btn-primary" onClick={onFileNew}>
+          {t.fileFirstBtn}
+        </button>
       </div>
     );
   }
@@ -53,32 +65,35 @@ export default function TrackerList({ lang }: Props) {
       {complaints.map((c) => {
         const days = daysElapsed(c.dateFiled);
         const slaDays = parseSLADays(c.issue.expectedSLA);
-        const pastSLA = c.status === 'Filed' && days > slaDays;
+        const pastSLA = AWAITING_ACTION.includes(c.status) && days > slaDays;
 
         return (
           <div key={c.id} className="card tracker-item">
             <div className="tracker-header">
               <div>
                 <div className="tracker-title">
-                  {c.issue.category} — {c.area || 'Unknown area'}
+                  {c.issue.category}
+                  <span className="tracker-area">
+                    <MapPin size={13} aria-hidden="true" /> {c.area || t.unknownArea}
+                  </span>
                 </div>
                 <div className="tracker-meta">
-                  {days} {t.daysAgo} &middot; {c.issue.department}
+                  {days} {days === 1 ? t.dayAgo : t.daysAgo} &middot; {c.issue.department}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="tracker-actions">
                 <button
                   className={`status-chip status-${c.status}`}
                   onClick={() => cycleStatus(c.id, c.status)}
-                  title="Click to change status"
+                  title={t.clickToChangeStatus}
                 >
-                  {c.status}
+                  {t.statusLabels[c.status]}
                 </button>
                 <button
-                  className="btn-ghost btn-sm"
+                  className="btn-ghost btn-sm btn-delete"
                   onClick={() => handleDelete(c.id)}
-                  style={{ padding: '0.3rem', color: 'var(--ink-muted)' }}
-                  title="Delete"
+                  title={t.deleteComplaint}
+                  aria-label={t.deleteComplaint}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -94,7 +109,7 @@ export default function TrackerList({ lang }: Props) {
                       sh.status === 'Resolved' ? 'resolved' :
                       i === c.statusHistory.length - 1 ? 'current' : ''
                     }`}
-                    title={`${sh.status} — ${new Date(sh.date).toLocaleDateString()}`}
+                    title={`${t.statusLabels[sh.status]} — ${new Date(sh.date).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-IN')}`}
                   />
                   {i < c.statusHistory.length - 1 && (
                     <div className="timeline-line filled" />
