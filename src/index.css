@@ -312,3 +312,98 @@ code {
 .badge-warning { background: rgba(var(--warning-rgb), 0.1); color: rgb(var(--warning-rgb)); border: 1px solid rgba(var(--warning-rgb), 0.2); }
 .badge-danger { background: rgba(var(--danger-rgb), 0.1); color: rgb(var(--danger-rgb)); border: 1px solid rgba(var(--danger-rgb), 0.2); }
 .badge-info { background: rgba(var(--info-rgb), 0.1); color: rgb(var(--info-rgb)); border: 1px solid rgba(var(--info-rgb), 0.2); }
+
+/* App Layout & Sidebar */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  border-radius: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem 2rem 1rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-link:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-link.active {
+  background: rgba(var(--primary-rgb), 0.15);
+  color: rgb(var(--primary-rgb));
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
+}
+
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 1rem;
+}
+
+.checklist-item {
+  display: flex; 
+  align-items: center; 
+  gap: 0.75rem; 
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.checklist-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+}
+

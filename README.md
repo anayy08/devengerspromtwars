@@ -14,7 +14,7 @@ Welcome to the workspace for your first hackathon! This project is pre-scaffolde
     - CSS Custom Variables (Color systems, sizing, theme-aware tokens)
     - Reusable Classes (cards, glassmorphic container, custom buttons, badges, inputs, flex/grid templates)
   - Icons: **Lucide React** (`lucide-react`)
-  - Target Environment: Verified Node.js v24+, Python 3.14+, and Git.
+  - Target Environment: Verified Node.js v24+, TypeScript and Git.
 
 ---
 
