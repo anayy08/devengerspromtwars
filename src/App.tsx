@@ -4,6 +4,7 @@ import IntakeForm from './components/IntakeForm';
 import TrackerList from './components/TrackerList';
 import Dashboard from './components/Dashboard';
 import HeroBanner from './components/HeroBanner';
+import SideFloral from './components/SideFloral';
 import { strings } from './strings';
 import { seedIfNeeded } from './lib/storage';
 import type { AppTab, UILanguage } from './types';
@@ -30,6 +31,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <SideFloral />
       <header className="app-header">
         <div className="brand">
           <svg className="brand-mark" viewBox="0 0 64 64" width="38" height="38" aria-hidden="true">
