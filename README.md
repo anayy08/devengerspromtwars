@@ -33,6 +33,26 @@ npm run dev                  # http://localhost:5173
 
 > ⚠️ **Security note:** `VITE_*` variables are embedded in the client bundle and visible to anyone in DevTools. That's acceptable for a demo/hackathon deployment; for real production traffic, proxy the AI calls through a minimal backend so the key stays server-side.
 
+## ✅ Testing & Quality
+
+Zero-dependency test suite built on Node's native test runner (`node:test`) — no extra install, runs in under a second:
+
+```bash
+npm test          # 18 unit tests (~0.3s)
+npm run lint      # oxlint static analysis
+npm run quality   # lint + tests + type-check + production build, one command
+```
+
+| Suite | Covers |
+|---|---|
+| `tests/languages.test.ts` | Language metadata, regional-language resolution, bilingual field selection |
+| `tests/ai-normalization.test.ts` | Untrusted AI responses normalized into render-safe data; legacy schema backward compatibility |
+| `tests/strings.test.ts` | All 5 translation tables complete, no empty strings, placeholders intact, enum labels covered |
+| `tests/sla.test.ts` | SLA parsing ("7–15 working days", "48 hours"), day-elapsed math, clock-skew safety |
+| `tests/security.test.ts` | Secret files excluded from version control; key-exposure documentation present |
+
+CI runs the same gate (lint → test → build) on every push via [GitHub Actions](.github/workflows/ci.yml). Pure logic (AI normalization, i18n, SLA math) lives in `src/lib/` as dependency-free modules, so it's testable without a DOM or mocks.
+
 ## 📦 Build & Deploy
 
 ```bash

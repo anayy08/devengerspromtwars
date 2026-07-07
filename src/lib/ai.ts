@@ -1,17 +1,21 @@
 import type {
   ClassificationResponse,
-  ClassifiedIssue,
-  EscalationStep,
   RTIApplication,
-  Severity,
   UILanguage,
 } from '../types';
-import { isUILanguage, languageMeta, regionalFor } from './languages';
+import { languageMeta, regionalFor } from './languages';
+import { normalizeClassification, normalizeRTI } from './ai-normalization';
+
+export { normalizeClassification, normalizeIssue, normalizeRTI } from './ai-normalization';
 
 type Provider = 'OPENAI' | 'GROQ' | 'GEMINI';
 
+const ENV = ((import.meta as ImportMeta & {
+  env?: Record<string, string | undefined>;
+}).env ?? {});
+
 function resolveProvider(): Provider {
-  const raw = ((import.meta.env.VITE_AI_PROVIDER as string | undefined) ?? 'OPENAI').toUpperCase();
+  const raw = (ENV.VITE_AI_PROVIDER ?? 'OPENAI').toUpperCase();
   // "GROK" kept as a legacy alias — the endpoint has always been Groq's.
   if (raw === 'GROQ' || raw === 'GROK') return 'GROQ';
   if (raw === 'GEMINI') return 'GEMINI';
@@ -21,9 +25,9 @@ function resolveProvider(): Provider {
 const PROVIDER = resolveProvider();
 
 const API_KEYS: Record<Provider, string | undefined> = {
-  OPENAI: import.meta.env.VITE_OPENAI_API_KEY as string | undefined,
-  GROQ: (import.meta.env.VITE_GROQ_API_KEY ?? import.meta.env.VITE_GROK_API_KEY) as string | undefined,
-  GEMINI: import.meta.env.VITE_GEMINI_API_KEY as string | undefined,
+  OPENAI: ENV.VITE_OPENAI_API_KEY,
+  GROQ: ENV.VITE_GROQ_API_KEY ?? ENV.VITE_GROK_API_KEY,
+  GEMINI: ENV.VITE_GEMINI_API_KEY,
 };
 
 const KEY_ENV_NAMES: Record<Provider, string> = {
@@ -45,8 +49,8 @@ const DEFAULT_URLS: Record<Provider, string> = {
   GEMINI: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
 };
 
-const MODEL = (import.meta.env.VITE_AI_MODEL as string | undefined) ?? DEFAULT_MODELS[PROVIDER];
-const BASE_URL = (import.meta.env.VITE_AI_BASE_URL as string | undefined) ?? DEFAULT_URLS[PROVIDER];
+const MODEL = ENV.VITE_AI_MODEL ?? DEFAULT_MODELS[PROVIDER];
+const BASE_URL = ENV.VITE_AI_BASE_URL ?? DEFAULT_URLS[PROVIDER];
 
 export class MissingApiKeyError extends Error {
   constructor() {
@@ -152,114 +156,6 @@ function parseJSON(text: string): unknown {
     if (start === -1 || end === -1 || end <= start) throw error;
     return JSON.parse(cleaned.slice(start, end + 1));
   }
-}
-
-/* ---------- Response validation ----------
- * The model's output is untrusted; a missing field must degrade gracefully,
- * never crash the render. Legacy "*Hindi" field names (pre-regional schema)
- * are accepted as regional so complaints saved by older versions still load. */
-
-function asString(value: unknown, fallback = ''): string {
-  return typeof value === 'string' ? value : fallback;
-}
-
-const SEVERITIES: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
-
-function asSeverity(value: unknown): Severity {
-  return SEVERITIES.includes(value as Severity) ? (value as Severity) : 'Medium';
-}
-
-/** Prefer each variant's own field; fall back to the other, then to `fallback`. */
-function asPair(english: unknown, regional: unknown, fallback = ''): [string, string] {
-  const en = asString(english);
-  const re = asString(regional);
-  return [en || re || fallback, re || en || fallback];
-}
-
-export function normalizeIssue(raw: unknown, defaultRegionalLang: UILanguage = 'hi'): ClassifiedIssue {
-  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const channel = (obj.channel && typeof obj.channel === 'object' ? obj.channel : {}) as Record<string, unknown>;
-  const ladderRaw = Array.isArray(obj.escalationLadder) ? obj.escalationLadder : [];
-  const regionalLang = isUILanguage(obj.regionalLang) && obj.regionalLang !== 'en'
-    ? obj.regionalLang
-    : defaultRegionalLang;
-
-  const escalationLadder: EscalationStep[] = ladderRaw.map((step, i) => {
-    const s = (step && typeof step === 'object' ? step : {}) as Record<string, unknown>;
-    const [actionEnglish, actionRegional] = asPair(s.actionEnglish, s.actionRegional ?? s.actionHindi);
-    const [whenToUseEnglish, whenToUseRegional] = asPair(s.whenToUseEnglish, s.whenToUseRegional ?? s.whenToUseHindi);
-    return {
-      step: typeof s.step === 'number' ? s.step : i + 1,
-      actionEnglish,
-      actionRegional,
-      whenToUseEnglish,
-      whenToUseRegional,
-    };
-  });
-
-  const [category, categoryRegional] = asPair(obj.category, obj.categoryRegional, 'General Civic Issue');
-  const [department, departmentRegional] = asPair(obj.department, obj.departmentRegional, 'Municipal Corporation');
-  const [departmentReasoningEnglish, departmentReasoningRegional] = asPair(
-    obj.departmentReasoningEnglish, obj.departmentReasoningRegional ?? obj.departmentReasoningHindi,
-  );
-  const [severityReasoningEnglish, severityReasoningRegional] = asPair(
-    obj.severityReasoningEnglish, obj.severityReasoningRegional ?? obj.severityReasoningHindi,
-  );
-  const [expectedSLAEnglish, expectedSLARegional] = asPair(
-    obj.expectedSLAEnglish, obj.expectedSLARegional ?? obj.expectedSLAHindi, '7–15 working days',
-  );
-  const [primaryEnglish, primaryRegional] = asPair(
-    channel.primaryEnglish, channel.primaryRegional ?? channel.primaryHindi, 'Local municipal office',
-  );
-  const [howToFileEnglish, howToFileRegional] = asPair(
-    channel.howToFileEnglish, channel.howToFileRegional ?? channel.howToFileHindi, '—',
-  );
-  const [complaintDraftEnglish, complaintDraftRegional] = asPair(
-    obj.complaintDraftEnglish, obj.complaintDraftRegional ?? obj.complaintDraftHindi,
-  );
-
-  return {
-    category,
-    categoryRegional,
-    department,
-    departmentRegional,
-    departmentReasoningEnglish,
-    departmentReasoningRegional,
-    severity: asSeverity(obj.severity),
-    severityReasoningEnglish,
-    severityReasoningRegional,
-    channel: {
-      primaryEnglish,
-      primaryRegional,
-      portalName: asString(channel.portalName, '—'),
-      howToFileEnglish,
-      howToFileRegional,
-    },
-    expectedSLAEnglish,
-    expectedSLARegional,
-    complaintDraftEnglish,
-    complaintDraftRegional,
-    escalationLadder,
-    regionalLang,
-  };
-}
-
-function normalizeClassification(raw: unknown, regionalLang: UILanguage): ClassificationResponse {
-  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const issues = Array.isArray(obj.issues) ? obj.issues : [];
-  if (issues.length === 0) {
-    throw new Error('AI returned no issues for this complaint');
-  }
-  return { issues: issues.map((issue) => normalizeIssue(issue, regionalLang)) };
-}
-
-function normalizeRTI(raw: unknown, regionalLang: UILanguage): RTIApplication {
-  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const [draftEnglish, draftRegional] = asPair(obj.draftEnglish, obj.draftRegional ?? obj.draftHindi);
-  if (!draftEnglish && !draftRegional) {
-    throw new Error('AI returned an empty RTI draft');
-  }
-  return { draftEnglish, draftRegional, regionalLang };
 }
 
 /* ---------- Transport ---------- */

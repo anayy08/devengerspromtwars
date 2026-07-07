@@ -4,6 +4,7 @@ import { getComplaints, updateComplaintStatus, deleteComplaint } from '../lib/st
 import { strings } from '../strings';
 import RtiModal from './RtiModal';
 import { localized } from '../lib/languages';
+import { daysElapsed, parseSLADays } from '../lib/sla';
 import type { UILanguage, SavedComplaint, ComplaintStatus } from '../types';
 
 const STATUS_ORDER: ComplaintStatus[] = ['Drafted', 'Filed', 'Acknowledged', 'Resolved', 'Ignored'];
@@ -33,20 +34,6 @@ export default function TrackerList({ lang, onFileNew }: Props) {
     if (!window.confirm(t.confirmDelete)) return;
     deleteComplaint(id);
     refresh();
-  };
-
-  const daysElapsed = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-  };
-
-  const parseSLADays = (sla: string): number => {
-    const match = sla.match(/(\d+)/g);
-    if (!match) return 15;
-    const value = parseInt(match[match.length - 1], 10);
-    // "24/48 hours" style SLAs would otherwise read as 24+ days
-    if (/hour|घंट/i.test(sla)) return Math.max(1, Math.ceil(value / 24));
-    return value;
   };
 
   if (complaints.length === 0) {
