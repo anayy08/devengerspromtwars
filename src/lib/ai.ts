@@ -167,7 +167,7 @@ function asBilingualPair(
   return [en || hi || fallback, hi || en || fallback];
 }
 
-function normalizeIssue(raw: unknown): ClassifiedIssue {
+export function normalizeIssue(raw: unknown): ClassifiedIssue {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const channel = (obj.channel && typeof obj.channel === 'object' ? obj.channel : {}) as Record<string, unknown>;
   const ladderRaw = Array.isArray(obj.escalationLadder) ? obj.escalationLadder : [];

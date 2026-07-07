@@ -1,4 +1,5 @@
 import type { SavedComplaint, ComplaintStatus, ClassifiedIssue } from '../types';
+import { normalizeIssue } from './ai';
 
 const STORAGE_KEY = 'nagriksetu-complaints';
 const SEEDED_KEY = 'nagriksetu-seeded';
@@ -7,10 +8,37 @@ export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+const VALID_STATUSES: ComplaintStatus[] = ['Drafted', 'Filed', 'Acknowledged', 'Resolved', 'Ignored'];
+
+/**
+ * Complaints already sitting in localStorage may predate a schema change
+ * (e.g. the English/Hindi field split) — normalize on read so stale data
+ * degrades gracefully instead of throwing mid-render.
+ */
+function normalizeSavedComplaint(raw: unknown): SavedComplaint {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const statusHistory = Array.isArray(obj.statusHistory)
+    ? (obj.statusHistory as Array<{ status: ComplaintStatus; date: string }>)
+    : [];
+
+  return {
+    id: typeof obj.id === 'string' ? obj.id : generateId(),
+    issue: normalizeIssue(obj.issue),
+    area: typeof obj.area === 'string' ? obj.area : '',
+    name: typeof obj.name === 'string' ? obj.name : '',
+    originalText: typeof obj.originalText === 'string' ? obj.originalText : '',
+    status: VALID_STATUSES.includes(obj.status as ComplaintStatus) ? (obj.status as ComplaintStatus) : 'Drafted',
+    dateFiled: typeof obj.dateFiled === 'string' ? obj.dateFiled : new Date().toISOString(),
+    statusHistory,
+  };
+}
+
 export function getComplaints(): SavedComplaint[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    const parsed = data ? JSON.parse(data) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(normalizeSavedComplaint);
   } catch {
     return [];
   }

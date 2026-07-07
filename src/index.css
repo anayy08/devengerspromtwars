@@ -1077,3 +1077,31 @@ body {
 
   .dashboard-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* Desktop: same centered layout, just scaled up to use the extra room */
+@media (min-width: 1024px) {
+  :root {
+    --content-width: 860px;
+    --dashboard-width: 1180px;
+  }
+  html { font-size: 17px; }
+
+  .app-header { padding: 1.5rem 2rem; }
+  .tab-nav { padding: 0 2rem; }
+  .main-content { padding: 3rem 2rem 5rem; }
+
+  .card { padding: 2rem; }
+  .hero-banner { padding: 2.25rem; gap: 2.5rem; }
+  .hero-art { width: 260px; }
+  .hero-title { font-size: 1.65rem; }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --content-width: 960px;
+    --dashboard-width: 1320px;
+  }
+  html { font-size: 18px; }
+
+  .hero-art { width: 300px; }
+}
