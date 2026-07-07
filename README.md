@@ -1,14 +1,14 @@
 # 🌉 NagrikSetu — Your Civic Complaint Companion
 
-**NagrikSetu** ("Citizen Bridge") turns a plain-language description of a civic problem — broken streetlight, garbage pile, open manhole — into ready-to-file, formally drafted complaints in **English and Hindi**, tells you **exactly which department and portal** to file with, and helps you **track and escalate** all the way to an RTI application.
+**NagrikSetu** ("Citizen Bridge") turns a plain-language description of a civic problem — broken streetlight, garbage pile, open manhole — into ready-to-file, formally drafted complaints in **English plus the selected regional language**, tells you **exactly which department and portal** to file with, and helps you **track and escalate** all the way to an RTI application.
 
-Fully bilingual UI (English ⇄ हिन्दी), works entirely in the browser — complaint data lives in `localStorage`, nothing is sent anywhere except the AI classification call.
+Multilingual UI (English, Hindi, Tamil, Bengali, Punjabi), works entirely in the browser — complaint data lives in `localStorage`, nothing is sent anywhere except the AI classification call.
 
 ## ✨ Features
 
 - **Plain-language intake** — describe the problem like you'd tell a neighbor; compound problems are split into separate issues automatically
 - **AI classification** — category, responsible department, severity, and expected SLA per citizen-charter norms
-- **Formal drafts** — proper Indian administrative register letters in both English and Hindi, with copy & email actions
+- **Formal drafts** — proper Indian administrative register letters in English plus the citizen's selected regional language, with copy & email actions
 - **Where to file** — real portals (CPGRAMS, Swachhata App, state helplines) with step-by-step filing instructions
 - **Complaint tracker** — status timeline (Drafted → Filed → Acknowledged → Resolved), overdue-SLA alerts
 - **RTI escalation** — one click generates a complete RTI Act 2005 application when a complaint is ignored past its SLA
@@ -58,7 +58,7 @@ The output in `dist/` is a fully static SPA (no client-side routing), so any sta
 ```
 src/
 ├── App.tsx                  # Shell: header, language toggle, tabs, footer
-├── strings.ts               # Complete EN/HI dictionary (typed for parity)
+├── strings.ts               # Complete multilingual dictionary (typed for parity)
 ├── types.ts                 # Domain types
 ├── lib/
 │   ├── ai.ts                # Provider config, prompts, response validation

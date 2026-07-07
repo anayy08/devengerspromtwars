@@ -1,11 +1,14 @@
+import { localized } from '../lib/languages';
 import type { EscalationStep, UILanguage } from '../types';
 
 interface Props {
   steps: EscalationStep[];
   lang: UILanguage;
+  /** Language the steps' regional fields were generated in */
+  issueLang: UILanguage;
 }
 
-export default function EscalationStepper({ steps, lang }: Props) {
+export default function EscalationStepper({ steps, lang, issueLang }: Props) {
   return (
     <div className="escalation-stepper">
       {steps.map((step, i) => (
@@ -16,10 +19,10 @@ export default function EscalationStepper({ steps, lang }: Props) {
           </div>
           <div className="step-content">
             <div className="step-action">
-              {lang === 'hi' ? step.actionHindi : step.actionEnglish}
+              {localized(step.actionEnglish, step.actionRegional, issueLang, lang)}
             </div>
             <div className="step-when">
-              {lang === 'hi' ? step.whenToUseHindi : step.whenToUseEnglish}
+              {localized(step.whenToUseEnglish, step.whenToUseRegional, issueLang, lang)}
             </div>
           </div>
         </div>

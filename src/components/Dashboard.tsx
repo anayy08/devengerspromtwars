@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { getComplaints } from '../lib/storage';
 import { strings } from '../strings';
+import { localized } from '../lib/languages';
 import type { UILanguage, SavedComplaint } from '../types';
 
 interface Props { lang: UILanguage; }
@@ -34,7 +35,7 @@ export default function Dashboard({ lang }: Props) {
   // Category breakdown
   const categoryCounts: Record<string, number> = {};
   complaints.forEach(c => {
-    const cat = c.issue.category;
+    const cat = localized(c.issue.category, c.issue.categoryRegional, c.issue.regionalLang, lang);
     categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
   });
   const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);

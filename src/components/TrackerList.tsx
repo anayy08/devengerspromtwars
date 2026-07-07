@@ -3,6 +3,7 @@ import { ClipboardList, AlertTriangle, Trash2, MapPin } from 'lucide-react';
 import { getComplaints, updateComplaintStatus, deleteComplaint } from '../lib/storage';
 import { strings } from '../strings';
 import RtiModal from './RtiModal';
+import { localized } from '../lib/languages';
 import type { UILanguage, SavedComplaint, ComplaintStatus } from '../types';
 
 const STATUS_ORDER: ComplaintStatus[] = ['Drafted', 'Filed', 'Acknowledged', 'Resolved', 'Ignored'];
@@ -72,13 +73,13 @@ export default function TrackerList({ lang, onFileNew }: Props) {
             <div className="tracker-header">
               <div>
                 <div className="tracker-title">
-                  {c.issue.category}
+                  {localized(c.issue.category, c.issue.categoryRegional, c.issue.regionalLang, lang)}
                   <span className="tracker-area">
                     <MapPin size={13} aria-hidden="true" /> {c.area || t.unknownArea}
                   </span>
                 </div>
                 <div className="tracker-meta">
-                  {days} {days === 1 ? t.dayAgo : t.daysAgo} &middot; {c.issue.department}
+                  {days} {days === 1 ? t.dayAgo : t.daysAgo} &middot; {localized(c.issue.department, c.issue.departmentRegional, c.issue.regionalLang, lang)}
                 </div>
               </div>
               <div className="tracker-actions">

@@ -4,6 +4,7 @@ import { generateRTI, MissingApiKeyError } from '../lib/ai';
 import { updateComplaintStatus } from '../lib/storage';
 import DraftTabs from './DraftTabs';
 import { strings } from '../strings';
+import { languageMeta, localized } from '../lib/languages';
 import type { UILanguage, SavedComplaint, RTIApplication } from '../types';
 
 interface Props {
@@ -17,7 +18,7 @@ export default function RtiModal({ complaint, lang, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rti, setRti] = useState<RTIApplication | null>(null);
-  const [rtiTab, setRtiTab] = useState<'en' | 'hi'>(lang === 'hi' ? 'hi' : 'en');
+  const [rtiTab, setRtiTab] = useState<'en' | 'regional'>(lang === 'en' ? 'en' : 'regional');
 
   // Close on Escape and lock background scroll while open
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function RtiModal({ complaint, lang, onClose }: Props) {
         complaint.originalText,
         complaint.area,
         complaint.issue.expectedSLAEnglish,
+        lang,
       );
       setRti(result);
       // Mark complaint as escalated
@@ -74,7 +76,7 @@ export default function RtiModal({ complaint, lang, onClose }: Props) {
         {!rti && !loading && (
           <div className="rti-intro">
             <FileSearch size={40} aria-hidden="true" />
-            <p>{t.rtiIntro.replace('{category}', complaint.issue.category)}</p>
+            <p>{t.rtiIntro.replace('{category}', localized(complaint.issue.category, complaint.issue.categoryRegional, complaint.issue.regionalLang, lang))}</p>
             <button className="btn-saffron" onClick={handleGenerate}>
               {t.generateRTI}
             </button>
@@ -111,14 +113,14 @@ export default function RtiModal({ complaint, lang, onClose }: Props) {
                 {t.englishTab}
               </button>
               <button
-                className={`card-tab ${rtiTab === 'hi' ? 'active' : ''}`}
-                onClick={() => setRtiTab('hi')}
+                className={`card-tab ${rtiTab === 'regional' ? 'active' : ''}`}
+                onClick={() => setRtiTab('regional')}
               >
-                {t.hindiTab}
+                {t.regionalDraftTab.replace('{lang}', rti ? languageMeta(rti.regionalLang).nativeName : '')}
               </button>
             </div>
             <DraftTabs
-              draft={rtiTab === 'en' ? rti.draftEnglish : rti.draftHindi}
+              draft={rtiTab === 'en' ? rti.draftEnglish : rti.draftRegional}
               category={`RTI - ${complaint.issue.category}`}
               lang={lang}
             />

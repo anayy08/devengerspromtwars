@@ -4,9 +4,10 @@ import DraftTabs from './DraftTabs';
 import EscalationStepper from './EscalationStepper';
 import { saveComplaint, generateId } from '../lib/storage';
 import { strings } from '../strings';
+import { languageMeta, localized } from '../lib/languages';
 import type { UILanguage, ClassifiedIssue } from '../types';
 
-type CardTab = 'english' | 'hindi' | 'filing' | 'escalation';
+type CardTab = 'english' | 'regional' | 'filing' | 'escalation';
 
 interface Props {
   issue: ClassifiedIssue;
@@ -18,8 +19,9 @@ interface Props {
 
 export default function IssueCard({ issue, lang, area, name, originalText }: Props) {
   const t = strings[lang];
-  const [activeTab, setActiveTab] = useState<CardTab>(lang === 'hi' ? 'hindi' : 'english');
+  const [activeTab, setActiveTab] = useState<CardTab>(lang === 'en' ? 'english' : 'regional');
   const [saved, setSaved] = useState(false);
+  const regionalName = languageMeta(issue.regionalLang).nativeName;
 
   const handleSave = () => {
     if (saved) return;
@@ -38,7 +40,7 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
 
   const tabs: { key: CardTab; label: string }[] = [
     { key: 'english', label: t.englishTab },
-    { key: 'hindi', label: t.hindiTab },
+    { key: 'regional', label: t.regionalDraftTab.replace('{lang}', regionalName) },
     { key: 'filing', label: t.filingTab },
     { key: 'escalation', label: t.escalationTab },
   ];
@@ -47,16 +49,19 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
     <div className="card issue-card fade-in">
       {/* Header */}
       <div className="issue-header">
-        <span className="category-badge">{issue.category}</span>
+        <span className="category-badge">
+          {localized(issue.category, issue.categoryRegional, issue.regionalLang, lang)}
+        </span>
         <span className={`severity-pill severity-${issue.severity}`}>
           {t.severityLabels[issue.severity]}
         </span>
         <span className="department-name">
-          <Building2 size={14} aria-hidden="true" /> {issue.department}
+          <Building2 size={14} aria-hidden="true" />
+          {localized(issue.department, issue.departmentRegional, issue.regionalLang, lang)}
         </span>
       </div>
       <p className="department-reasoning">
-        {lang === 'hi' ? issue.departmentReasoningHindi : issue.departmentReasoningEnglish}
+        {localized(issue.departmentReasoningEnglish, issue.departmentReasoningRegional, issue.regionalLang, lang)}
       </p>
 
       {/* Tabs */}
@@ -83,9 +88,9 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
         />
       )}
 
-      {activeTab === 'hindi' && (
+      {activeTab === 'regional' && (
         <DraftTabs
-          draft={issue.complaintDraftHindi}
+          draft={issue.complaintDraftRegional}
           category={issue.category}
           lang={lang}
         />
@@ -96,7 +101,7 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
           <div className="filing-row">
             <span className="filing-label">{t.primaryChannel}</span>
             <span className="filing-value">
-              {lang === 'hi' ? issue.channel.primaryHindi : issue.channel.primaryEnglish}
+              {localized(issue.channel.primaryEnglish, issue.channel.primaryRegional, issue.regionalLang, lang)}
             </span>
           </div>
           <div className="filing-row">
@@ -106,20 +111,20 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
           <div className="filing-row">
             <span className="filing-label">{t.howToFile}</span>
             <span className="filing-value mono">
-              {lang === 'hi' ? issue.channel.howToFileHindi : issue.channel.howToFileEnglish}
+              {localized(issue.channel.howToFileEnglish, issue.channel.howToFileRegional, issue.regionalLang, lang)}
             </span>
           </div>
           <div className="filing-row">
             <span className="filing-label">{t.expectedSLA}</span>
             <span className="filing-value">
-              {lang === 'hi' ? issue.expectedSLAHindi : issue.expectedSLAEnglish}
+              {localized(issue.expectedSLAEnglish, issue.expectedSLARegional, issue.regionalLang, lang)}
             </span>
           </div>
-          {(issue.severityReasoningEnglish || issue.severityReasoningHindi) && (
+          {(issue.severityReasoningEnglish || issue.severityReasoningRegional) && (
             <div className="filing-row">
               <span className="filing-label">{t.severityAssessment}</span>
               <span className="filing-value">
-                {lang === 'hi' ? issue.severityReasoningHindi : issue.severityReasoningEnglish}
+                {localized(issue.severityReasoningEnglish, issue.severityReasoningRegional, issue.regionalLang, lang)}
               </span>
             </div>
           )}
@@ -127,7 +132,7 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
       )}
 
       {activeTab === 'escalation' && (
-        <EscalationStepper steps={issue.escalationLadder} lang={lang} />
+        <EscalationStepper steps={issue.escalationLadder} lang={lang} issueLang={issue.regionalLang} />
       )}
 
       {/* Footer: Save to Tracker */}

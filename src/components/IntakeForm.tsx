@@ -28,7 +28,7 @@ export default function IntakeForm({ lang }: Props) {
     setResults(null);
 
     try {
-      const response = await classifyComplaint(text.trim(), city.trim(), name.trim());
+      const response = await classifyComplaint(text.trim(), city.trim(), name.trim(), lang);
       setResults(response.issues);
     } catch (err) {
       console.error('Complaint classification failed:', err);
