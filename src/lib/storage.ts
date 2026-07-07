@@ -12,7 +12,7 @@ const VALID_STATUSES: ComplaintStatus[] = ['Drafted', 'Filed', 'Acknowledged', '
 
 /**
  * Complaints already sitting in localStorage may predate a schema change
- * (e.g. the English/Hindi field split) — normalize on read so stale data
+ * (e.g. the English/Regional field split) — normalize on read so stale data
  * degrades gracefully instead of throwing mid-render.
  */
 function normalizeSavedComplaint(raw: unknown): SavedComplaint {
@@ -71,35 +71,38 @@ function daysAgo(n: number): string {
   return d.toISOString();
 }
 
-/** Seed localStorage with demo complaints on first load */
+/** Seed localStorage with demo complaints on first load (regional = Hindi) */
 export function seedIfNeeded(): void {
   if (localStorage.getItem(SEEDED_KEY)) return;
 
   const seedIssue = (overrides: Partial<ClassifiedIssue>): ClassifiedIssue => ({
     category: 'Street Lighting',
+    categoryRegional: 'स्ट्रीट लाइटिंग',
     department: 'Municipal Corporation — Electrical Wing',
+    departmentRegional: 'नगर निगम — विद्युत विभाग',
     departmentReasoningEnglish: 'Street lighting falls under the electrical wing of the municipal corporation.',
-    departmentReasoningHindi: 'स्ट्रीट लाइटिंग नगर निगम के विद्युत विभाग के अंतर्गत आती है।',
+    departmentReasoningRegional: 'स्ट्रीट लाइटिंग नगर निगम के विद्युत विभाग के अंतर्गत आती है।',
     severity: 'Medium',
     severityReasoningEnglish: 'Non-functional streetlight is a safety concern but not immediately life-threatening.',
-    severityReasoningHindi: 'खराब स्ट्रीटलाइट सुरक्षा की दृष्टि से चिंताजनक है, लेकिन तत्काल जानलेवा नहीं है।',
+    severityReasoningRegional: 'खराब स्ट्रीटलाइट सुरक्षा की दृष्टि से चिंताजनक है, लेकिन तत्काल जानलेवा नहीं है।',
     channel: {
       primaryEnglish: 'Municipal portal / ward office',
-      primaryHindi: 'नगर निगम पोर्टल / वार्ड कार्यालय',
+      primaryRegional: 'नगर निगम पोर्टल / वार्ड कार्यालय',
       portalName: 'City Municipal Portal',
       howToFileEnglish: '1. Visit the municipal corporation website\n2. Register a complaint under "Street Lighting"\n3. Note the complaint reference number',
-      howToFileHindi: '1. नगर निगम की वेबसाइट पर जाएँ\n2. "स्ट्रीट लाइटिंग" के अंतर्गत शिकायत दर्ज करें\n3. शिकायत संदर्भ संख्या नोट कर लें',
+      howToFileRegional: '1. नगर निगम की वेबसाइट पर जाएँ\n2. "स्ट्रीट लाइटिंग" के अंतर्गत शिकायत दर्ज करें\n3. शिकायत संदर्भ संख्या नोट कर लें',
     },
     expectedSLAEnglish: '7–15 working days',
-    expectedSLAHindi: '7–15 कार्य दिवस',
+    expectedSLARegional: '7–15 कार्य दिवस',
     complaintDraftEnglish: 'Subject: Non-functional Streetlight — Urgent Attention Required\n\nRespected Sir/Madam,\n\nI wish to bring to your kind attention that the streetlight near [YOUR ADDRESS] has not been functional for the past 3 weeks. This has caused significant inconvenience and safety concerns for residents.\n\nI kindly request immediate action to repair the said streetlight.\n\nYours faithfully,\n[YOUR NAME]',
-    complaintDraftHindi: 'विषय: खराब स्ट्रीटलाइट — तत्काल ध्यान आवश्यक\n\nमाननीय महोदय/महोदया,\n\nमैं आपका ध्यान आकर्षित करना चाहता हूँ कि [YOUR ADDRESS] के पास स्ट्रीटलाइट पिछले 3 सप्ताह से खराब है। इससे निवासियों को काफ़ी असुविधा और सुरक्षा संबंधी चिंता हो रही है।\n\nकृपया उक्त स्ट्रीटलाइट की मरम्मत के लिए तत्काल कार्रवाई करें।\n\nभवदीय,\n[YOUR NAME]',
+    complaintDraftRegional: 'विषय: खराब स्ट्रीटलाइट — तत्काल ध्यान आवश्यक\n\nमाननीय महोदय/महोदया,\n\nमैं आपका ध्यान आकर्षित करना चाहता हूँ कि [YOUR ADDRESS] के पास स्ट्रीटलाइट पिछले 3 सप्ताह से खराब है। इससे निवासियों को काफ़ी असुविधा और सुरक्षा संबंधी चिंता हो रही है।\n\nकृपया उक्त स्ट्रीटलाइट की मरम्मत के लिए तत्काल कार्रवाई करें।\n\nभवदीय,\n[YOUR NAME]',
     escalationLadder: [
-      { step: 1, actionEnglish: 'Follow up with the ward office in person', actionHindi: 'वार्ड कार्यालय में व्यक्तिगत रूप से फॉलो-अप करें', whenToUseEnglish: 'After 7 days of no response', whenToUseHindi: '7 दिनों तक कोई जवाब न मिलने पर' },
-      { step: 2, actionEnglish: 'Write to the Municipal Commissioner', actionHindi: 'नगर आयुक्त को पत्र लिखें', whenToUseEnglish: 'After 15 days of no action', whenToUseHindi: '15 दिनों तक कोई कार्रवाई न होने पर' },
-      { step: 3, actionEnglish: 'File complaint on CPGRAMS', actionHindi: 'CPGRAMS पर शिकायत दर्ज करें', whenToUseEnglish: 'If local channels fail', whenToUseHindi: 'यदि स्थानीय माध्यम विफल हो जाएँ' },
-      { step: 4, actionEnglish: 'File RTI under RTI Act 2005', actionHindi: 'RTI अधिनियम 2005 के तहत RTI दाखिल करें', whenToUseEnglish: 'To legally demand accountability', whenToUseHindi: 'जवाबदेही की कानूनी माँग के लिए' },
+      { step: 1, actionEnglish: 'Follow up with the ward office in person', actionRegional: 'वार्ड कार्यालय में व्यक्तिगत रूप से फॉलो-अप करें', whenToUseEnglish: 'After 7 days of no response', whenToUseRegional: '7 दिनों तक कोई जवाब न मिलने पर' },
+      { step: 2, actionEnglish: 'Write to the Municipal Commissioner', actionRegional: 'नगर आयुक्त को पत्र लिखें', whenToUseEnglish: 'After 15 days of no action', whenToUseRegional: '15 दिनों तक कोई कार्रवाई न होने पर' },
+      { step: 3, actionEnglish: 'File complaint on CPGRAMS', actionRegional: 'CPGRAMS पर शिकायत दर्ज करें', whenToUseEnglish: 'If local channels fail', whenToUseRegional: 'यदि स्थानीय माध्यम विफल हो जाएँ' },
+      { step: 4, actionEnglish: 'File RTI under RTI Act 2005', actionRegional: 'RTI अधिनियम 2005 के तहत RTI दाखिल करें', whenToUseEnglish: 'To legally demand accountability', whenToUseRegional: 'जवाबदेही की कानूनी माँग के लिए' },
     ],
+    regionalLang: 'hi',
     ...overrides,
   });
 
@@ -108,14 +111,16 @@ export function seedIfNeeded(): void {
       id: generateId(),
       issue: seedIssue({
         category: 'Water Supply',
+        categoryRegional: 'जल आपूर्ति',
         department: 'Municipal Corporation — Water Works Division',
+        departmentRegional: 'नगर निगम — जल कार्य प्रभाग',
         departmentReasoningEnglish: 'Water supply issues are managed by the Water Works Division.',
-        departmentReasoningHindi: 'जल आपूर्ति संबंधी समस्याएँ जल कार्य प्रभाग द्वारा संभाली जाती हैं।',
+        departmentReasoningRegional: 'जल आपूर्ति संबंधी समस्याएँ जल कार्य प्रभाग द्वारा संभाली जाती हैं।',
         severity: 'High',
         severityReasoningEnglish: 'Inadequate water supply directly impacts daily life and health.',
-        severityReasoningHindi: 'अपर्याप्त जल आपूर्ति सीधे दैनिक जीवन और स्वास्थ्य को प्रभावित करती है।',
+        severityReasoningRegional: 'अपर्याप्त जल आपूर्ति सीधे दैनिक जीवन और स्वास्थ्य को प्रभावित करती है।',
         expectedSLAEnglish: '3–7 working days',
-        expectedSLAHindi: '3–7 कार्य दिवस',
+        expectedSLARegional: '3–7 कार्य दिवस',
       }),
       area: 'Sector 15, Noida',
       name: 'Rajesh Kumar',
@@ -131,10 +136,12 @@ export function seedIfNeeded(): void {
       id: generateId(),
       issue: seedIssue({
         category: 'Road Safety',
+        categoryRegional: 'सड़क सुरक्षा',
         department: 'Municipal Corporation — Roads & Infrastructure',
+        departmentRegional: 'नगर निगम — सड़क एवं अवसंरचना',
         severity: 'Critical',
         severityReasoningEnglish: 'Open manhole near a school poses immediate danger to children.',
-        severityReasoningHindi: 'स्कूल के पास खुला मैनहोल बच्चों के लिए तत्काल खतरा है।',
+        severityReasoningRegional: 'स्कूल के पास खुला मैनहोल बच्चों के लिए तत्काल खतरा है।',
       }),
       area: 'Lajpat Nagar, Delhi',
       name: 'Priya Sharma',
@@ -151,16 +158,18 @@ export function seedIfNeeded(): void {
       id: generateId(),
       issue: seedIssue({
         category: 'Solid Waste Management',
+        categoryRegional: 'ठोस अपशिष्ट प्रबंधन',
         department: 'Municipal Corporation — Sanitation Wing',
+        departmentRegional: 'नगर निगम — स्वच्छता विभाग',
         departmentReasoningEnglish: 'Garbage collection falls under the Sanitation Wing.',
-        departmentReasoningHindi: 'कचरा संग्रहण स्वच्छता विभाग के अंतर्गत आता है।',
+        departmentReasoningRegional: 'कचरा संग्रहण स्वच्छता विभाग के अंतर्गत आता है।',
         severity: 'Medium',
         channel: {
           primaryEnglish: 'Swachhata App / Municipal portal',
-          primaryHindi: 'स्वच्छता ऐप / नगर निगम पोर्टल',
+          primaryRegional: 'स्वच्छता ऐप / नगर निगम पोर्टल',
           portalName: 'Swachhata App',
           howToFileEnglish: '1. Download the Swachhata App\n2. Upload photo of garbage pile\n3. Pin location and submit',
-          howToFileHindi: '1. स्वच्छता ऐप डाउनलोड करें\n2. कचरे के ढेर की फ़ोटो अपलोड करें\n3. स्थान पिन करें और सबमिट करें',
+          howToFileRegional: '1. स्वच्छता ऐप डाउनलोड करें\n2. कचरे के ढेर की फ़ोटो अपलोड करें\n3. स्थान पिन करें और सबमिट करें',
         },
       }),
       area: 'Koramangala, Bengaluru',

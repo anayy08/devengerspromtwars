@@ -4,7 +4,9 @@ import type {
   EscalationStep,
   RTIApplication,
   Severity,
+  UILanguage,
 } from '../types';
+import { isUILanguage, languageMeta, regionalFor } from './languages';
 
 type Provider = 'OPENAI' | 'GROQ' | 'GEMINI';
 
@@ -53,60 +55,68 @@ export class MissingApiKeyError extends Error {
   }
 }
 
-const CLASSIFICATION_SYSTEM_PROMPT = `You are an expert on Indian government administration, civic services, and grievance redressal mechanisms. A citizen will describe a civic problem in plain language (English or Hindi). Your job is to:
+/**
+ * Classification prompt, parameterized on the citizen's regional language so
+ * drafts and explanations come back in English + that language.
+ */
+function classificationPrompt(regionalName: string): string {
+  return `You are an expert on Indian government administration, civic services, and grievance redressal mechanisms. A citizen will describe a civic problem in plain language (any Indian language or English). Your job is to:
 
 1. SPLIT compound problems into separate issues (e.g., "streetlight broken AND garbage piling" = 2 separate issues).
 2. CLASSIFY each issue: category, responsible department, severity.
-3. IDENTIFY the best channel/portal to file the complaint, naming real Indian portals where confident (CPGRAMS, Swachhata App, IGRS, state-specific portals like PGMS for UP, CM Helpline for MP, etc.). Never invent URLs — name portals generically if unsure. Provide the channel's "primary" office/authority name and "howToFile" instructions in BOTH English and Hindi (portalName stays as its real proper-noun name, unchanged across languages).
-4. DRAFT a formal complaint letter in BOTH English and Hindi using proper Indian administrative register:
-   - English: "Respected Sir/Madam, I wish to bring to your kind attention..."
-   - Hindi: "माननीय महोदय/महोदया, मैं आपका ध्यान आकर्षित करना चाहता/चाहती हूँ..."
-   - Structure: Subject line, Salutation, Body with dates/location details, Request for action, Closing with "Yours faithfully"
+3. IDENTIFY the best channel/portal to file the complaint, naming real Indian portals where confident (CPGRAMS, Swachhata App, IGRS, state-specific portals like PGMS for UP, CM Helpline for MP, etc.). Never invent URLs — name portals generically if unsure.
+4. DRAFT a formal complaint letter in BOTH English and ${regionalName} using proper Indian administrative register:
+   - English opening: "Respected Sir/Madam, I wish to bring to your kind attention..."
+   - ${regionalName} opening: the equivalent formal administrative salutation in ${regionalName}.
+   - Structure: Subject line, Salutation, Body with dates/location details, Request for action, Closing with "Yours faithfully" (or its ${regionalName} equivalent)
    - Include placeholders like [YOUR NAME], [YOUR ADDRESS], [YOUR PHONE NUMBER], [DATE] where citizen data is not provided.
    - If the citizen provides their name, use it. If city/area is provided, include it in the letter and reference the local municipal body.
-5. PROVIDE an escalation ladder of 4-5 steps, each with "action" and "whenToUse" written in BOTH English and Hindi. The LAST step MUST ALWAYS be: "File an RTI application under the RTI Act 2005 asking for the current status and reasons for delay of your complaint." (and its Hindi equivalent).
-6. ESTIMATE expected SLA based on citizen charter norms (e.g., "7-15 working days"), in BOTH English and Hindi (e.g., "7-15 कार्य दिवस").
+5. PROVIDE an escalation ladder of 4-5 steps. The LAST step MUST ALWAYS be: "File an RTI application under the RTI Act 2005 asking for the current status and reasons for delay of your complaint." (and its ${regionalName} equivalent).
+6. ESTIMATE expected SLA based on citizen charter norms (e.g., "7-15 working days"), in BOTH English and ${regionalName}.
 
-Every reasoning/explanation field (department reasoning, severity reasoning) must also be written in BOTH English and Hindi — this app is fully bilingual and every field the citizen reads must appear correctly in whichever language they select.
-
-Use formal but readable language. Hindi drafts should use शुद्ध हिन्दी but remain accessible to common citizens.
+IMPORTANT: This app is fully bilingual. EVERY field the citizen reads must be provided in BOTH English and ${regionalName}: category, department, reasonings, channel names, filing instructions, SLA, drafts, and every escalation step. "portalName" is the one exception — keep it as the portal's real proper-noun name. ${regionalName} text must be natural, formal-but-accessible ${regionalName} in its own script, never transliterated English.
 
 Respond with ONLY a single valid JSON object (no markdown, no commentary, no code fences) matching exactly this shape:
 {
   "issues": [
     {
       "category": string,
+      "categoryRegional": string,
       "department": string,
+      "departmentRegional": string,
       "departmentReasoningEnglish": string,
-      "departmentReasoningHindi": string,
+      "departmentReasoningRegional": string,
       "severity": "Low" | "Medium" | "High" | "Critical",
       "severityReasoningEnglish": string,
-      "severityReasoningHindi": string,
+      "severityReasoningRegional": string,
       "channel": {
         "primaryEnglish": string,
-        "primaryHindi": string,
+        "primaryRegional": string,
         "portalName": string,
         "howToFileEnglish": string,
-        "howToFileHindi": string
+        "howToFileRegional": string
       },
       "expectedSLAEnglish": string,
-      "expectedSLAHindi": string,
+      "expectedSLARegional": string,
       "complaintDraftEnglish": string,
-      "complaintDraftHindi": string,
+      "complaintDraftRegional": string,
       "escalationLadder": [
         {
           "step": number,
           "actionEnglish": string,
-          "actionHindi": string,
+          "actionRegional": string,
           "whenToUseEnglish": string,
-          "whenToUseHindi": string
+          "whenToUseRegional": string
         }
       ]
     }
   ]
-}`;
+}
+All *Regional fields must be written in ${regionalName}.`;
+}
 
-const RTI_SYSTEM_PROMPT = `You are an expert on the Right to Information Act, 2005 (India). Given details of a civic complaint that has not been resolved within the expected timeframe, draft a complete RTI application addressed to the Public Information Officer (PIO) of the relevant department.
+function rtiPrompt(regionalName: string): string {
+  return `You are an expert on the Right to Information Act, 2005 (India). Given details of a civic complaint that has not been resolved within the expected timeframe, draft a complete RTI application addressed to the Public Information Officer (PIO) of the relevant department.
 
 The application must:
 1. Be addressed to "The Public Information Officer, [Department Name]"
@@ -117,13 +127,15 @@ The application must:
 6. Include [YOUR NAME], [YOUR ADDRESS], [DATE] placeholders
 7. End with "Yours faithfully" and signature block
 
-Provide both English and Hindi versions.
+Provide BOTH an English version and a ${regionalName} version (in ${regionalName} script, never transliterated English).
 
 Respond with ONLY a single valid JSON object (no markdown, no commentary, no code fences) matching exactly this shape:
 {
   "draftEnglish": string,
-  "draftHindi": string
-}`;
+  "draftRegional": string
+}
+"draftRegional" must be written in ${regionalName}.`;
+}
 
 function parseJSON(text: string): unknown {
   let cleaned = text.trim();
@@ -144,7 +156,8 @@ function parseJSON(text: string): unknown {
 
 /* ---------- Response validation ----------
  * The model's output is untrusted; a missing field must degrade gracefully,
- * never crash the render. */
+ * never crash the render. Legacy "*Hindi" field names (pre-regional schema)
+ * are accepted as regional so complaints saved by older versions still load. */
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
@@ -156,96 +169,97 @@ function asSeverity(value: unknown): Severity {
   return SEVERITIES.includes(value as Severity) ? (value as Severity) : 'Medium';
 }
 
-/** Prefer each language's own field; fall back to the other language, then to `fallback`. */
-function asBilingualPair(
-  english: unknown,
-  hindi: unknown,
-  fallback = '',
-): [string, string] {
+/** Prefer each variant's own field; fall back to the other, then to `fallback`. */
+function asPair(english: unknown, regional: unknown, fallback = ''): [string, string] {
   const en = asString(english);
-  const hi = asString(hindi);
-  return [en || hi || fallback, hi || en || fallback];
+  const re = asString(regional);
+  return [en || re || fallback, re || en || fallback];
 }
 
-export function normalizeIssue(raw: unknown): ClassifiedIssue {
+export function normalizeIssue(raw: unknown, defaultRegionalLang: UILanguage = 'hi'): ClassifiedIssue {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const channel = (obj.channel && typeof obj.channel === 'object' ? obj.channel : {}) as Record<string, unknown>;
   const ladderRaw = Array.isArray(obj.escalationLadder) ? obj.escalationLadder : [];
+  const regionalLang = isUILanguage(obj.regionalLang) && obj.regionalLang !== 'en'
+    ? obj.regionalLang
+    : defaultRegionalLang;
 
   const escalationLadder: EscalationStep[] = ladderRaw.map((step, i) => {
     const s = (step && typeof step === 'object' ? step : {}) as Record<string, unknown>;
-    const actionEnglish = asString(s.actionEnglish);
-    const actionHindi = asString(s.actionHindi);
-    const whenToUseEnglish = asString(s.whenToUseEnglish);
-    const whenToUseHindi = asString(s.whenToUseHindi);
+    const [actionEnglish, actionRegional] = asPair(s.actionEnglish, s.actionRegional ?? s.actionHindi);
+    const [whenToUseEnglish, whenToUseRegional] = asPair(s.whenToUseEnglish, s.whenToUseRegional ?? s.whenToUseHindi);
     return {
       step: typeof s.step === 'number' ? s.step : i + 1,
-      actionEnglish: actionEnglish || actionHindi,
-      actionHindi: actionHindi || actionEnglish,
-      whenToUseEnglish: whenToUseEnglish || whenToUseHindi,
-      whenToUseHindi: whenToUseHindi || whenToUseEnglish,
+      actionEnglish,
+      actionRegional,
+      whenToUseEnglish,
+      whenToUseRegional,
     };
   });
 
-  const [primaryEnglish, primaryHindi] = asBilingualPair(
-    channel.primaryEnglish, channel.primaryHindi, 'Local municipal office',
+  const [category, categoryRegional] = asPair(obj.category, obj.categoryRegional, 'General Civic Issue');
+  const [department, departmentRegional] = asPair(obj.department, obj.departmentRegional, 'Municipal Corporation');
+  const [departmentReasoningEnglish, departmentReasoningRegional] = asPair(
+    obj.departmentReasoningEnglish, obj.departmentReasoningRegional ?? obj.departmentReasoningHindi,
   );
-  const [howToFileEnglish, howToFileHindi] = asBilingualPair(
-    channel.howToFileEnglish, channel.howToFileHindi, '—',
+  const [severityReasoningEnglish, severityReasoningRegional] = asPair(
+    obj.severityReasoningEnglish, obj.severityReasoningRegional ?? obj.severityReasoningHindi,
   );
-  const [departmentReasoningEnglish, departmentReasoningHindi] = asBilingualPair(
-    obj.departmentReasoningEnglish, obj.departmentReasoningHindi,
+  const [expectedSLAEnglish, expectedSLARegional] = asPair(
+    obj.expectedSLAEnglish, obj.expectedSLARegional ?? obj.expectedSLAHindi, '7–15 working days',
   );
-  const [severityReasoningEnglish, severityReasoningHindi] = asBilingualPair(
-    obj.severityReasoningEnglish, obj.severityReasoningHindi,
+  const [primaryEnglish, primaryRegional] = asPair(
+    channel.primaryEnglish, channel.primaryRegional ?? channel.primaryHindi, 'Local municipal office',
   );
-  const [expectedSLAEnglish, expectedSLAHindi] = asBilingualPair(
-    obj.expectedSLAEnglish, obj.expectedSLAHindi, '7–15 working days',
+  const [howToFileEnglish, howToFileRegional] = asPair(
+    channel.howToFileEnglish, channel.howToFileRegional ?? channel.howToFileHindi, '—',
+  );
+  const [complaintDraftEnglish, complaintDraftRegional] = asPair(
+    obj.complaintDraftEnglish, obj.complaintDraftRegional ?? obj.complaintDraftHindi,
   );
 
   return {
-    category: asString(obj.category, 'General Civic Issue'),
-    department: asString(obj.department, 'Municipal Corporation'),
+    category,
+    categoryRegional,
+    department,
+    departmentRegional,
     departmentReasoningEnglish,
-    departmentReasoningHindi,
+    departmentReasoningRegional,
     severity: asSeverity(obj.severity),
     severityReasoningEnglish,
-    severityReasoningHindi,
+    severityReasoningRegional,
     channel: {
       primaryEnglish,
-      primaryHindi,
+      primaryRegional,
       portalName: asString(channel.portalName, '—'),
       howToFileEnglish,
-      howToFileHindi,
+      howToFileRegional,
     },
     expectedSLAEnglish,
-    expectedSLAHindi,
-    complaintDraftEnglish: asString(obj.complaintDraftEnglish),
-    complaintDraftHindi: asString(obj.complaintDraftHindi),
+    expectedSLARegional,
+    complaintDraftEnglish,
+    complaintDraftRegional,
     escalationLadder,
+    regionalLang,
   };
 }
 
-function normalizeClassification(raw: unknown): ClassificationResponse {
+function normalizeClassification(raw: unknown, regionalLang: UILanguage): ClassificationResponse {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const issues = Array.isArray(obj.issues) ? obj.issues : [];
   if (issues.length === 0) {
     throw new Error('AI returned no issues for this complaint');
   }
-  return { issues: issues.map(normalizeIssue) };
+  return { issues: issues.map((issue) => normalizeIssue(issue, regionalLang)) };
 }
 
-function normalizeRTI(raw: unknown): RTIApplication {
+function normalizeRTI(raw: unknown, regionalLang: UILanguage): RTIApplication {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const draftEnglish = asString(obj.draftEnglish);
-  const draftHindi = asString(obj.draftHindi);
-  if (!draftEnglish && !draftHindi) {
+  const [draftEnglish, draftRegional] = asPair(obj.draftEnglish, obj.draftRegional ?? obj.draftHindi);
+  if (!draftEnglish && !draftRegional) {
     throw new Error('AI returned an empty RTI draft');
   }
-  return {
-    draftEnglish: draftEnglish || draftHindi,
-    draftHindi: draftHindi || draftEnglish,
-  };
+  return { draftEnglish, draftRegional, regionalLang };
 }
 
 /* ---------- Transport ---------- */
@@ -312,13 +326,17 @@ export async function classifyComplaint(
   description: string,
   city: string,
   name: string,
+  uiLang: UILanguage,
 ): Promise<ClassificationResponse> {
+  const regionalLang = regionalFor(uiLang);
+  const regionalName = languageMeta(regionalLang).englishName;
+
   const parts: string[] = [`Citizen's complaint: "${description}"`];
   if (city) parts.push(`City/Area: ${city}`);
   if (name) parts.push(`Citizen's name: ${name}`);
 
-  const result = await callAI(parts.join('\n'), CLASSIFICATION_SYSTEM_PROMPT);
-  return normalizeClassification(result);
+  const result = await callAI(parts.join('\n'), classificationPrompt(regionalName));
+  return normalizeClassification(result, regionalLang);
 }
 
 export async function generateRTI(
@@ -327,7 +345,11 @@ export async function generateRTI(
   originalComplaint: string,
   area: string,
   expectedSLA: string,
+  uiLang: UILanguage,
 ): Promise<RTIApplication> {
+  const regionalLang = regionalFor(uiLang);
+  const regionalName = languageMeta(regionalLang).englishName;
+
   const prompt = `Generate an RTI application for the following unresolved civic complaint:
 
 Category: ${category}
@@ -338,6 +360,6 @@ Original complaint: "${originalComplaint}"
 
 The complaint was filed but not resolved within the expected timeframe. Draft the RTI application.`;
 
-  const result = await callAI(prompt, RTI_SYSTEM_PROMPT);
-  return normalizeRTI(result);
+  const result = await callAI(prompt, rtiPrompt(regionalName));
+  return normalizeRTI(result, regionalLang);
 }

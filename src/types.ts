@@ -1,36 +1,45 @@
+export type UILanguage = 'en' | 'hi' | 'ta' | 'bn' | 'pa';
+
 export interface IssueChannel {
   primaryEnglish: string;
-  primaryHindi: string;
+  primaryRegional: string;
   portalName: string;
   howToFileEnglish: string;
-  howToFileHindi: string;
+  howToFileRegional: string;
 }
 
 export interface EscalationStep {
   step: number;
   actionEnglish: string;
-  actionHindi: string;
+  actionRegional: string;
   whenToUseEnglish: string;
-  whenToUseHindi: string;
+  whenToUseRegional: string;
 }
 
 export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
 
+/**
+ * One classified civic issue. Every user-facing field exists in an
+ * English + regional-language pair; `regionalLang` records which language
+ * the regional fields were generated in (Hindi when the UI is English).
+ */
 export interface ClassifiedIssue {
   category: string;
+  categoryRegional: string;
   department: string;
+  departmentRegional: string;
   departmentReasoningEnglish: string;
-  departmentReasoningHindi: string;
+  departmentReasoningRegional: string;
   severity: Severity;
   severityReasoningEnglish: string;
-  severityReasoningHindi: string;
+  severityReasoningRegional: string;
   channel: IssueChannel;
   expectedSLAEnglish: string;
-  expectedSLAHindi: string;
+  expectedSLARegional: string;
   complaintDraftEnglish: string;
-  complaintDraftHindi: string;
+  complaintDraftRegional: string;
   escalationLadder: EscalationStep[];
-  photoObservations?: string;
+  regionalLang: UILanguage;
 }
 
 export interface ClassificationResponse {
@@ -52,8 +61,8 @@ export interface SavedComplaint {
 
 export interface RTIApplication {
   draftEnglish: string;
-  draftHindi: string;
+  draftRegional: string;
+  regionalLang: UILanguage;
 }
 
 export type AppTab = 'file' | 'tracker' | 'dashboard';
-export type UILanguage = 'en' | 'hi';

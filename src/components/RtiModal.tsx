@@ -17,7 +17,7 @@ export default function RtiModal({ complaint, lang, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rti, setRti] = useState<RTIApplication | null>(null);
-  const [rtiTab, setRtiTab] = useState<'en' | 'hi'>(lang);
+  const [rtiTab, setRtiTab] = useState<'en' | 'hi'>(lang === 'hi' ? 'hi' : 'en');
 
   // Close on Escape and lock background scroll while open
   useEffect(() => {

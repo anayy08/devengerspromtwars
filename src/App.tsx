@@ -12,11 +12,25 @@ import './App.css';
 
 const LANG_KEY = 'nagriksetu-lang';
 
+const LANGUAGES: Array<{ code: UILanguage; nativeName: string; shortCode: string }> = [
+  { code: 'en', nativeName: 'English', shortCode: 'EN' },
+  { code: 'hi', nativeName: 'हिन्दी', shortCode: 'हि' },
+  { code: 'ta', nativeName: 'தமிழ்', shortCode: 'த' },
+  { code: 'bn', nativeName: 'বাংলা', shortCode: 'বাং' },
+  { code: 'pa', nativeName: 'ਪੰਜਾਬੀ', shortCode: 'ਪੰ' },
+];
+const LANG_CODES = LANGUAGES.map((l) => l.code);
+
+function isUILanguage(value: string | null): value is UILanguage {
+  return (LANG_CODES as string[]).includes(value ?? '');
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('file');
-  const [lang, setLang] = useState<UILanguage>(() =>
-    localStorage.getItem(LANG_KEY) === 'hi' ? 'hi' : 'en'
-  );
+  const [lang, setLang] = useState<UILanguage>(() => {
+    const stored = localStorage.getItem(LANG_KEY);
+    return isUILanguage(stored) ? stored : 'en';
+  });
   const t = strings[lang];
 
   useEffect(() => {
@@ -50,15 +64,25 @@ function App() {
           </div>
         </div>
         <div className="header-actions">
-          <button
-            className="lang-toggle"
-            onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
-            aria-label={t.langToggleLabel}
-            title={t.langToggleLabel}
-          >
-            <Languages size={15} />
-            {lang === 'en' ? 'हिंदी' : 'English'}
-          </button>
+          <div className="lang-select-wrapper">
+            <span className="lang-select-display" aria-hidden="true">
+              <Languages size={15} />
+              {LANGUAGES.find((l) => l.code === lang)?.shortCode}
+            </span>
+            <select
+              className="lang-select"
+              value={lang}
+              onChange={(e) => setLang(e.target.value as UILanguage)}
+              aria-label={t.langToggleLabel}
+              title={t.langToggleLabel}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.nativeName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </header>
 
