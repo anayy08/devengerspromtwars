@@ -57,15 +57,17 @@ const CLASSIFICATION_SYSTEM_PROMPT = `You are an expert on Indian government adm
 
 1. SPLIT compound problems into separate issues (e.g., "streetlight broken AND garbage piling" = 2 separate issues).
 2. CLASSIFY each issue: category, responsible department, severity.
-3. IDENTIFY the best channel/portal to file the complaint, naming real Indian portals where confident (CPGRAMS, Swachhata App, IGRS, state-specific portals like PGMS for UP, CM Helpline for MP, etc.). Never invent URLs — name portals generically if unsure.
+3. IDENTIFY the best channel/portal to file the complaint, naming real Indian portals where confident (CPGRAMS, Swachhata App, IGRS, state-specific portals like PGMS for UP, CM Helpline for MP, etc.). Never invent URLs — name portals generically if unsure. Provide the channel's "primary" office/authority name and "howToFile" instructions in BOTH English and Hindi (portalName stays as its real proper-noun name, unchanged across languages).
 4. DRAFT a formal complaint letter in BOTH English and Hindi using proper Indian administrative register:
    - English: "Respected Sir/Madam, I wish to bring to your kind attention..."
    - Hindi: "माननीय महोदय/महोदया, मैं आपका ध्यान आकर्षित करना चाहता/चाहती हूँ..."
    - Structure: Subject line, Salutation, Body with dates/location details, Request for action, Closing with "Yours faithfully"
    - Include placeholders like [YOUR NAME], [YOUR ADDRESS], [YOUR PHONE NUMBER], [DATE] where citizen data is not provided.
    - If the citizen provides their name, use it. If city/area is provided, include it in the letter and reference the local municipal body.
-5. PROVIDE an escalation ladder of 4-5 steps. The LAST step MUST ALWAYS be: "File an RTI application under the RTI Act 2005 asking for the current status and reasons for delay of your complaint."
-6. ESTIMATE expected SLA based on citizen charter norms (e.g., "7-15 working days").
+5. PROVIDE an escalation ladder of 4-5 steps, each with "action" and "whenToUse" written in BOTH English and Hindi. The LAST step MUST ALWAYS be: "File an RTI application under the RTI Act 2005 asking for the current status and reasons for delay of your complaint." (and its Hindi equivalent).
+6. ESTIMATE expected SLA based on citizen charter norms (e.g., "7-15 working days"), in BOTH English and Hindi (e.g., "7-15 कार्य दिवस").
+
+Every reasoning/explanation field (department reasoning, severity reasoning) must also be written in BOTH English and Hindi — this app is fully bilingual and every field the citizen reads must appear correctly in whichever language they select.
 
 Use formal but readable language. Hindi drafts should use शुद्ध हिन्दी but remain accessible to common citizens.
 
@@ -75,14 +77,31 @@ Respond with ONLY a single valid JSON object (no markdown, no commentary, no cod
     {
       "category": string,
       "department": string,
-      "departmentReasoning": string,
+      "departmentReasoningEnglish": string,
+      "departmentReasoningHindi": string,
       "severity": "Low" | "Medium" | "High" | "Critical",
-      "severityReasoning": string,
-      "channel": { "primary": string, "portalName": string, "howToFile": string },
-      "expectedSLA": string,
+      "severityReasoningEnglish": string,
+      "severityReasoningHindi": string,
+      "channel": {
+        "primaryEnglish": string,
+        "primaryHindi": string,
+        "portalName": string,
+        "howToFileEnglish": string,
+        "howToFileHindi": string
+      },
+      "expectedSLAEnglish": string,
+      "expectedSLAHindi": string,
       "complaintDraftEnglish": string,
       "complaintDraftHindi": string,
-      "escalationLadder": [ { "step": number, "action": string, "whenToUse": string } ]
+      "escalationLadder": [
+        {
+          "step": number,
+          "actionEnglish": string,
+          "actionHindi": string,
+          "whenToUseEnglish": string,
+          "whenToUseHindi": string
+        }
+      ]
     }
   ]
 }`;
@@ -137,6 +156,17 @@ function asSeverity(value: unknown): Severity {
   return SEVERITIES.includes(value as Severity) ? (value as Severity) : 'Medium';
 }
 
+/** Prefer each language's own field; fall back to the other language, then to `fallback`. */
+function asBilingualPair(
+  english: unknown,
+  hindi: unknown,
+  fallback = '',
+): [string, string] {
+  const en = asString(english);
+  const hi = asString(hindi);
+  return [en || hi || fallback, hi || en || fallback];
+}
+
 function normalizeIssue(raw: unknown): ClassifiedIssue {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const channel = (obj.channel && typeof obj.channel === 'object' ? obj.channel : {}) as Record<string, unknown>;
@@ -144,25 +174,52 @@ function normalizeIssue(raw: unknown): ClassifiedIssue {
 
   const escalationLadder: EscalationStep[] = ladderRaw.map((step, i) => {
     const s = (step && typeof step === 'object' ? step : {}) as Record<string, unknown>;
+    const actionEnglish = asString(s.actionEnglish);
+    const actionHindi = asString(s.actionHindi);
+    const whenToUseEnglish = asString(s.whenToUseEnglish);
+    const whenToUseHindi = asString(s.whenToUseHindi);
     return {
       step: typeof s.step === 'number' ? s.step : i + 1,
-      action: asString(s.action),
-      whenToUse: asString(s.whenToUse),
+      actionEnglish: actionEnglish || actionHindi,
+      actionHindi: actionHindi || actionEnglish,
+      whenToUseEnglish: whenToUseEnglish || whenToUseHindi,
+      whenToUseHindi: whenToUseHindi || whenToUseEnglish,
     };
   });
+
+  const [primaryEnglish, primaryHindi] = asBilingualPair(
+    channel.primaryEnglish, channel.primaryHindi, 'Local municipal office',
+  );
+  const [howToFileEnglish, howToFileHindi] = asBilingualPair(
+    channel.howToFileEnglish, channel.howToFileHindi, '—',
+  );
+  const [departmentReasoningEnglish, departmentReasoningHindi] = asBilingualPair(
+    obj.departmentReasoningEnglish, obj.departmentReasoningHindi,
+  );
+  const [severityReasoningEnglish, severityReasoningHindi] = asBilingualPair(
+    obj.severityReasoningEnglish, obj.severityReasoningHindi,
+  );
+  const [expectedSLAEnglish, expectedSLAHindi] = asBilingualPair(
+    obj.expectedSLAEnglish, obj.expectedSLAHindi, '7–15 working days',
+  );
 
   return {
     category: asString(obj.category, 'General Civic Issue'),
     department: asString(obj.department, 'Municipal Corporation'),
-    departmentReasoning: asString(obj.departmentReasoning),
+    departmentReasoningEnglish,
+    departmentReasoningHindi,
     severity: asSeverity(obj.severity),
-    severityReasoning: asString(obj.severityReasoning),
+    severityReasoningEnglish,
+    severityReasoningHindi,
     channel: {
-      primary: asString(channel.primary, 'Local municipal office'),
+      primaryEnglish,
+      primaryHindi,
       portalName: asString(channel.portalName, '—'),
-      howToFile: asString(channel.howToFile, '—'),
+      howToFileEnglish,
+      howToFileHindi,
     },
-    expectedSLA: asString(obj.expectedSLA, '7–15 working days'),
+    expectedSLAEnglish,
+    expectedSLAHindi,
     complaintDraftEnglish: asString(obj.complaintDraftEnglish),
     complaintDraftHindi: asString(obj.complaintDraftHindi),
     escalationLadder,
@@ -221,7 +278,7 @@ async function callAI(
             { role: 'user', content: userPrompt },
           ],
           temperature: 0.7,
-          max_tokens: 4096,
+          max_tokens: 8192,
           response_format: { type: 'json_object' },
         }),
       });

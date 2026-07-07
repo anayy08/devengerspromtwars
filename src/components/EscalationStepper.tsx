@@ -5,7 +5,7 @@ interface Props {
   lang: UILanguage;
 }
 
-export default function EscalationStepper({ steps }: Props) {
+export default function EscalationStepper({ steps, lang }: Props) {
   return (
     <div className="escalation-stepper">
       {steps.map((step, i) => (
@@ -15,8 +15,12 @@ export default function EscalationStepper({ steps }: Props) {
             {i < steps.length - 1 && <div className="step-line" />}
           </div>
           <div className="step-content">
-            <div className="step-action">{step.action}</div>
-            <div className="step-when">{step.whenToUse}</div>
+            <div className="step-action">
+              {lang === 'hi' ? step.actionHindi : step.actionEnglish}
+            </div>
+            <div className="step-when">
+              {lang === 'hi' ? step.whenToUseHindi : step.whenToUseEnglish}
+            </div>
           </div>
         </div>
       ))}

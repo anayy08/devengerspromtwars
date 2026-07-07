@@ -55,7 +55,9 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
           <Building2 size={14} aria-hidden="true" /> {issue.department}
         </span>
       </div>
-      <p className="department-reasoning">{issue.departmentReasoning}</p>
+      <p className="department-reasoning">
+        {lang === 'hi' ? issue.departmentReasoningHindi : issue.departmentReasoningEnglish}
+      </p>
 
       {/* Tabs */}
       <div className="card-tabs" role="tablist">
@@ -93,7 +95,9 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
         <div className="filing-info">
           <div className="filing-row">
             <span className="filing-label">{t.primaryChannel}</span>
-            <span className="filing-value">{issue.channel.primary}</span>
+            <span className="filing-value">
+              {lang === 'hi' ? issue.channel.primaryHindi : issue.channel.primaryEnglish}
+            </span>
           </div>
           <div className="filing-row">
             <span className="filing-label">{t.portalApp}</span>
@@ -101,16 +105,22 @@ export default function IssueCard({ issue, lang, area, name, originalText }: Pro
           </div>
           <div className="filing-row">
             <span className="filing-label">{t.howToFile}</span>
-            <span className="filing-value mono">{issue.channel.howToFile}</span>
+            <span className="filing-value mono">
+              {lang === 'hi' ? issue.channel.howToFileHindi : issue.channel.howToFileEnglish}
+            </span>
           </div>
           <div className="filing-row">
             <span className="filing-label">{t.expectedSLA}</span>
-            <span className="filing-value">{issue.expectedSLA}</span>
+            <span className="filing-value">
+              {lang === 'hi' ? issue.expectedSLAHindi : issue.expectedSLAEnglish}
+            </span>
           </div>
-          {issue.severityReasoning && (
+          {(issue.severityReasoningEnglish || issue.severityReasoningHindi) && (
             <div className="filing-row">
               <span className="filing-label">{t.severityAssessment}</span>
-              <span className="filing-value">{issue.severityReasoning}</span>
+              <span className="filing-value">
+                {lang === 'hi' ? issue.severityReasoningHindi : issue.severityReasoningEnglish}
+              </span>
             </div>
           )}
         </div>

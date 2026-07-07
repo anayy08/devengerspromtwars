@@ -64,7 +64,7 @@ export default function TrackerList({ lang, onFileNew }: Props) {
     <div className="tracker-list fade-in">
       {complaints.map((c) => {
         const days = daysElapsed(c.dateFiled);
-        const slaDays = parseSLADays(c.issue.expectedSLA);
+        const slaDays = parseSLADays(c.issue.expectedSLAEnglish);
         const pastSLA = AWAITING_ACTION.includes(c.status) && days > slaDays;
 
         return (

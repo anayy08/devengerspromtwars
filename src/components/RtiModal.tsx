@@ -42,7 +42,7 @@ export default function RtiModal({ complaint, lang, onClose }: Props) {
         complaint.issue.department,
         complaint.originalText,
         complaint.area,
-        complaint.issue.expectedSLA,
+        complaint.issue.expectedSLAEnglish,
       );
       setRti(result);
       // Mark complaint as escalated

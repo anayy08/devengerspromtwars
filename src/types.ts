@@ -1,13 +1,17 @@
 export interface IssueChannel {
-  primary: string;
+  primaryEnglish: string;
+  primaryHindi: string;
   portalName: string;
-  howToFile: string;
+  howToFileEnglish: string;
+  howToFileHindi: string;
 }
 
 export interface EscalationStep {
   step: number;
-  action: string;
-  whenToUse: string;
+  actionEnglish: string;
+  actionHindi: string;
+  whenToUseEnglish: string;
+  whenToUseHindi: string;
 }
 
 export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
@@ -15,11 +19,14 @@ export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
 export interface ClassifiedIssue {
   category: string;
   department: string;
-  departmentReasoning: string;
+  departmentReasoningEnglish: string;
+  departmentReasoningHindi: string;
   severity: Severity;
-  severityReasoning: string;
+  severityReasoningEnglish: string;
+  severityReasoningHindi: string;
   channel: IssueChannel;
-  expectedSLA: string;
+  expectedSLAEnglish: string;
+  expectedSLAHindi: string;
   complaintDraftEnglish: string;
   complaintDraftHindi: string;
   escalationLadder: EscalationStep[];
